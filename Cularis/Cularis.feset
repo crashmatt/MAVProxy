@@ -323,7 +323,7 @@
             </setting>
             <setting>
                 <name>output4</name>
-                <value>-10.0</value>
+                <value>-30.0</value>
             </setting>
         </function>
         <function>
@@ -343,15 +343,15 @@
             </setting>
             <setting>
                 <name>output1</name>
-                <value>-20.0</value>
+                <value>-60.0</value>
             </setting>
             <setting>
                 <name>input2</name>
-                <value>-80.0</value>
+                <value>-50.0</value>
             </setting>
             <setting>
                 <name>output2</name>
-                <value>-12.0</value>
+                <value>-20.0</value>
             </setting>
             <setting>
                 <name>input3</name>
@@ -827,11 +827,11 @@
             </setting>
             <setting>
                 <name>scalePos</name>
-                <value>-800</value>
+                <value>1000</value>
             </setting>
             <setting>
                 <name>scaleNeg</name>
-                <value>-1000</value>
+                <value>800</value>
             </setting>
             <setting>
                 <name>limitMin</name>
@@ -891,7 +891,7 @@
             </setting>
             <setting>
                 <name>subTrim</name>
-                <value>-120</value>
+                <value>100</value>
             </setting>
             <setting>
                 <name>offset</name>
@@ -899,11 +899,11 @@
             </setting>
             <setting>
                 <name>scalePos</name>
-                <value>-800</value>
+                <value>800</value>
             </setting>
             <setting>
                 <name>scaleNeg</name>
-                <value>-800</value>
+                <value>800</value>
             </setting>
             <setting>
                 <name>limitMin</name>
