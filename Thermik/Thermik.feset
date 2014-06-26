@@ -1063,7 +1063,7 @@
             </setting>
             <setting>
                 <name>subTrim</name>
-                <value>160</value>
+                <value>450</value>
             </setting>
             <setting>
                 <name>offset</name>
