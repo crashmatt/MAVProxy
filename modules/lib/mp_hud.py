@@ -43,6 +43,8 @@ class hud(threading.Thread):
         self.pitch_ladder_step_height = 0.2
         self.pitch_ladder_text_xoffset = 0.025
         self.pitch_ladder_font_size = 15;
+        self.pitch_ladder_font = "FreeMono"
+        self.pitch_ladder_font_bold = True
         self.pitch_ladder_upper_colour = blue
         self.pitch_ladder_lower_colour = brown
         self.pitch_ladder_zero_colour = white
@@ -105,8 +107,9 @@ class hud(threading.Thread):
         # relative units
         step_down_distance_to_center = degpitch * self.pitch_ladder_step_height / self.pitch_ladder_step
         top_steps = int(self.pitch_ladder_height / (self.pitch_ladder_step_height * 2))
-            
-        ladderfont = pygame.font.SysFont("FreeMono", self.pitch_ladder_font_size, True)
+        
+        # Load the font
+        ladderfont = pygame.font.SysFont(self.pitch_ladder_font, self.pitch_ladder_font_size, self.pitch_ladder_font_bold)
         
         for step in xrange(-top_steps, top_steps+1):
             step_pos = (step * self.pitch_ladder_step_height) + next_step_down_pos      #relative
@@ -125,8 +128,26 @@ class hud(threading.Thread):
                 
                 if((steps_down - step) < 0):
                     bar_color = self.pitch_ladder_lower_colour
-                if((steps_down - step) > 0):
+                elif((steps_down - step) > 0):
                     bar_color = self.pitch_ladder_upper_colour
+                 
+            if(step_pos > self.pitch_ladder_fade_pos):
+                max = self.pitch_ladder_height * 0.5
+                min = self.pitch_ladder_fade_pos
+                bar_fade = (max - step_pos) / (max - min)
+                if(bar_fade < 0):
+                    bar_fade = 0
+            elif(step_pos < -self.pitch_ladder_fade_pos):
+                max = -self.pitch_ladder_height * 0.5
+                min = -self.pitch_ladder_fade_pos
+                bar_fade = (max - step_pos) / (max - min)
+                if(bar_fade < 0):
+                    bar_fade = 0
+            else:
+                bar_fade = 1
+                
+            bc = ( int(bar_color[0] * bar_fade), int(bar_color[1] * bar_fade), int(bar_color[2] * bar_fade))
+            bar_color = bc
                 
             step_text = ladderfont.render(step_str, 1, red)
             text_rect = step_text.get_rect()
