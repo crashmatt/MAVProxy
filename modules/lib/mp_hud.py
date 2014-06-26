@@ -9,12 +9,14 @@ import sys,os
 import time
 import threading, Queue
 import math
+import webcolors
 
 blue = (0,0,255)
 red = (255,0,0)
 green = (0,255,0)
 purple = (150,0,150)
 white = (255,255,255)
+brown = webcolors.name_to_rgb("brown")
 
 
 class hud(threading.Thread):
@@ -32,16 +34,20 @@ class hud(threading.Thread):
         
         #Pitch ladder parameters
         self.pitch_ladder_height = 0.8 # percent of total screen height that it covers
-                
         self.pitch_ladder_zero_bar_width =  0.3;
         self.pitch_ladder_zero_bar_thickness = 2;
         self.pitch_ladder_bar_width = 0.25;
         self.pitch_ladder_bar_thickness = 1;
-        self.pitch_ladder_bar_gap = 0.1;
+        self.pitch_ladder_bar_gap = 0.08;
         self.pitch_ladder_step = 10;    # degrees
         self.pitch_ladder_step_height = 0.2
         self.pitch_ladder_text_xoffset = 0.025
         self.pitch_ladder_font_size = 15;
+        self.pitch_ladder_upper_colour = blue
+        self.pitch_ladder_lower_colour = brown
+        self.pitch_ladder_zero_colour = white
+        self.pitch_ladder_fade_pos = 0.3
+         
         
         # attitude in radians
         self.roll = 0
@@ -110,11 +116,17 @@ class hud(threading.Thread):
                 bar_delta_x = ( (self.pitch_ladder_zero_bar_width - self.pitch_ladder_bar_gap) * 0.5)
                 bar_thickness = self.pitch_ladder_zero_bar_thickness
                 step_str = "0" 
+                bar_color = self.pitch_ladder_zero_colour
             else:
                 bar_delta_x = ( (self.pitch_ladder_bar_width - self.pitch_ladder_bar_gap) * 0.5)
                 bar_thickness = self.pitch_ladder_bar_thickness
                 stepangle = (steps_down - step) * self.pitch_ladder_step
                 step_str = "%02d" % stepangle
+                
+                if((steps_down - step) < 0):
+                    bar_color = self.pitch_ladder_lower_colour
+                if((steps_down - step) > 0):
+                    bar_color = self.pitch_ladder_upper_colour
                 
             step_text = ladderfont.render(step_str, 1, red)
             text_rect = step_text.get_rect()
@@ -126,7 +138,7 @@ class hud(threading.Thread):
             x2 = x1 + (bar_delta_x * self.width)
             y2 = y1
             
-            pygame.draw.line(surface, white, (x1, y1), (x2, y2), bar_thickness)
+            pygame.draw.line(surface, bar_color, (x1, y1), (x2, y2), bar_thickness)
 
             x2 = x2 + (self.pitch_ladder_text_xoffset * self.width)
             surface.blit(step_text, (x2 , y1-text_center[1]) )
@@ -135,7 +147,7 @@ class hud(threading.Thread):
             x1 = (-self.pitch_ladder_bar_gap * self.width * 0.5) + self.x0
             x2 = x1 - (bar_delta_x * self.width)
             
-            pygame.draw.line(surface, white, (x1, y1), (x2, y2), bar_thickness)
+            pygame.draw.line(surface, bar_color, (x1, y1), (x2, y2), bar_thickness)
             x2 = x2 - (text_center[0]*2) - (self.pitch_ladder_text_xoffset * self.width)
             surface.blit(step_text, (x2 , y1-text_center[1]) )
             
