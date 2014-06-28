@@ -50,6 +50,9 @@ class hud(threading.Thread):
         self.pitch_ladder_zero_colour = white
         self.pitch_ladder_fade_pos = 0.3
          
+        # gap between bar center and start of the bar
+        self.bar_gap = (self.pitch_ladder_bar_gap * self.width * 0.5) #bar gap in abs units
+
         
         # attitude in radians
         self.roll = 0
@@ -72,6 +75,8 @@ class hud(threading.Thread):
         
         self.screen = pygame.display.set_mode((self.width, self.height), pygame.NOFRAME | pygame.DOUBLEBUF)
         # Beware - there be dragons -  | pygame.FULLSCREEN
+        
+        self.ladder_text_bitmap_gen()
          
         while( (not self._stop.isSet()) and (self.mpstate.status.exit == False) ):
             time.sleep(0.05);
@@ -81,7 +86,27 @@ class hud(threading.Thread):
         pygame.display.quit()
 
         print("HUD thread end")
-            
+    
+    def ladder_text_bitmap_gen(self):
+        # Load the fonts
+        ladderfont = pygame.font.SysFont(self.pitch_ladder_font, self.pitch_ladder_font_size, self.pitch_ladder_font_bold)
+        
+        steps = 120 / self.pitch_ladder_step
+        self.fontmap = []
+        
+        for angle in xrange(-steps, steps):
+            step_angle = angle * self.pitch_ladder_step
+            step_str = "%01d" % step_angle
+            self.fontmap.append( (step_angle, ladderfont.render(step_str, 1, green)) )
+#            step_text = ladderfont.render(step_str, 1, red)
+#            text_rect = step_text.get_rect()
+#            text_center = text_rect.center
+
+    def ladder_text_lookup(self, angle):
+        if(angle in self.fontmap[0] ):
+            return self.fontmap[angle][1]
+        else:
+            return self.fontmap[0][1]
         
     def update_instruments(self):
         self.roll = self.roll + (2 * math.pi / 360)
@@ -91,9 +116,12 @@ class hud(threading.Thread):
         if(self.pitch > math.pi):
             self.pitch -= math.pi * 2
 
+
     # redraw the pitch ladder using rotated surface method
-    def redraw_pitch_ladder_rot(self):
-        surface = pygame.Surface(self.screen.get_size())
+    def redraw_pitch_ladder_direct(self):
+
+#        surface = pygame.Surface(self.screen.get_size())
+        surface = self.screen
         #screen center
         
         degpitch = math.degrees(self.pitch)
@@ -108,8 +136,106 @@ class hud(threading.Thread):
         step_down_distance_to_center = degpitch * self.pitch_ladder_step_height / self.pitch_ladder_step
         top_steps = int(self.pitch_ladder_height / (self.pitch_ladder_step_height * 2))
         
-        # Load the font
-        ladderfont = pygame.font.SysFont(self.pitch_ladder_font, self.pitch_ladder_font_size, self.pitch_ladder_font_bold)
+        
+        for step in xrange(-top_steps, top_steps+1):
+            step_pos = (step * self.pitch_ladder_step_height) + next_step_down_pos      #relative
+
+            # bar lengths in relative units
+            if ((steps_down - step) == 0):
+                bar_length = ( (self.pitch_ladder_zero_bar_width - self.pitch_ladder_bar_gap) * 0.5)
+                bar_thickness = self.pitch_ladder_zero_bar_thickness
+                text_offset = (self.pitch_ladder_zero_bar_width * 0.5) + self.pitch_ladder_text_xoffset
+                step_str = "0" 
+                bar_color = self.pitch_ladder_zero_colour
+            else:
+                bar_length = ( (self.pitch_ladder_bar_width - self.pitch_ladder_bar_gap) * 0.5)
+                bar_thickness = self.pitch_ladder_bar_thickness
+                text_offset = (self.pitch_ladder_bar_width * 0.5) + self.pitch_ladder_text_xoffset
+                stepangle = (steps_down - step) * self.pitch_ladder_step
+                step_str = "%02d" % stepangle
+                
+                if((steps_down - step) < 0):
+                    bar_color = self.pitch_ladder_lower_colour
+                elif((steps_down - step) > 0):
+                    bar_color = self.pitch_ladder_upper_colour
+                 
+            if(step_pos > self.pitch_ladder_fade_pos):
+                max = self.pitch_ladder_height * 0.5
+                min = self.pitch_ladder_fade_pos
+                bar_fade = (max - step_pos) / (max - min)
+                if(bar_fade < 0):
+                    bar_fade = 0
+            elif(step_pos < -self.pitch_ladder_fade_pos):
+                max = -self.pitch_ladder_height * 0.5
+                min = -self.pitch_ladder_fade_pos
+                bar_fade = (max - step_pos) / (max - min)
+                if(bar_fade < 0):
+                    bar_fade = 0
+            else:
+                bar_fade = 1
+                
+            bc = ( int(bar_color[0] * bar_fade), int(bar_color[1] * bar_fade), int(bar_color[2] * bar_fade))
+            bar_color = bc
+
+            # bar centers in absolute units
+            bar_y_offset = ( step_pos * self.height )
+            bar_centre_x = ( bar_y_offset * math.sin(self.roll) ) + self.x0
+            bar_centre_y = ( bar_y_offset * math.cos(self.roll) ) + self.y0
+            
+            
+            #step_text.set_alpha(int((1-bar_fade)*(1-bar_fade)*100))
+            
+            # Draw right side line and text
+            abs_bar_length = bar_length * self.width
+            x1 = bar_centre_x + ( self.bar_gap * math.cos(self.roll) )
+            y1 = bar_centre_y - ( self.bar_gap * math.sin(self.roll) )
+            x2 = bar_centre_x + ( abs_bar_length * math.cos(self.roll) )
+            y2 = bar_centre_y - ( abs_bar_length * math.sin(self.roll) )
+  
+            pygame.draw.line(surface, bar_color, (x1, y1), (x2, y2), bar_thickness)
+
+            x1 = bar_centre_x + (text_offset * self.width * math.cos(self.roll))
+            y1 = bar_centre_y - (text_offset * self.width * math.sin(self.roll) )
+            
+            pygame.draw.circle(surface, green, ( int(x1),int(y1) ), 10, 2)
+            
+            surface.blit(self.ladder_text_lookup(stepangle), (x1 , y1) )
+
+#            x2 = x2 + (self.pitch_ladder_text_xoffset * self.width)
+#            surface.blit(step_text, (x2 , y1-text_center[1]) )
+
+            # Draw left side line and text
+            x1 = bar_centre_x - ( self.bar_gap * math.cos(self.roll) )
+            y1 = bar_centre_y + ( self.bar_gap * math.sin(self.roll) )
+            x2 = bar_centre_x - ( abs_bar_length * math.cos(self.roll) )
+            y2 = bar_centre_y + ( abs_bar_length * math.sin(self.roll) )
+            
+            pygame.draw.line(surface, bar_color, (x1, y1), (x2, y2), bar_thickness)
+            
+
+
+            
+
+    # redraw the pitch ladder using rotated surface method
+    
+    
+    def redraw_pitch_ladder_rot(self):
+#        surface = pygame.Surface(self.screen.get_size())
+        surface = self.screen
+        #screen center
+        
+        degpitch = math.degrees(self.pitch)
+
+        # Find the next angle step in the ladder down from the screen center
+        steps_down = math.floor(degpitch / self.pitch_ladder_step)
+        next_step_down =  steps_down * self.pitch_ladder_step                                               #degrees
+        next_step_down_delta = degpitch - next_step_down                                                     #degrees        
+        next_step_down_pos = next_step_down_delta * self.pitch_ladder_step_height / self.pitch_ladder_step   #relative
+        
+        # relative units
+        step_down_distance_to_center = degpitch * self.pitch_ladder_step_height / self.pitch_ladder_step
+        top_steps = int(self.pitch_ladder_height / (self.pitch_ladder_step_height * 2))
+        
         
         for step in xrange(-top_steps, top_steps+1):
             step_pos = (step * self.pitch_ladder_step_height) + next_step_down_pos      #relative
@@ -149,9 +275,11 @@ class hud(threading.Thread):
             bc = ( int(bar_color[0] * bar_fade), int(bar_color[1] * bar_fade), int(bar_color[2] * bar_fade))
             bar_color = bc
                 
-            step_text = ladderfont.render(step_str, 1, red)
-            text_rect = step_text.get_rect()
-            text_center = text_rect.center
+#            step_text = ladderfont.render(step_str, 1, red)
+#            text_rect = step_text.get_rect()
+#            text_center = text_rect.center
+            
+            #step_text.set_alpha(int((1-bar_fade)*(1-bar_fade)*100))
             
             # Draw right side line and text
             x1 = (self.pitch_ladder_bar_gap * self.width * 0.5) + self.x0
@@ -161,27 +289,29 @@ class hud(threading.Thread):
             
             pygame.draw.line(surface, bar_color, (x1, y1), (x2, y2), bar_thickness)
 
-            x2 = x2 + (self.pitch_ladder_text_xoffset * self.width)
-            surface.blit(step_text, (x2 , y1-text_center[1]) )
+#            x2 = x2 + (self.pitch_ladder_text_xoffset * self.width)
+#            surface.blit(step_text, (x2 , y1-text_center[1]) )
 
             # Draw left side line and text
             x1 = (-self.pitch_ladder_bar_gap * self.width * 0.5) + self.x0
             x2 = x1 - (bar_delta_x * self.width)
             
             pygame.draw.line(surface, bar_color, (x1, y1), (x2, y2), bar_thickness)
-            x2 = x2 - (text_center[0]*2) - (self.pitch_ladder_text_xoffset * self.width)
-            surface.blit(step_text, (x2 , y1-text_center[1]) )
+
+#            x2 = x2 - (text_center[0]*2) - (self.pitch_ladder_text_xoffset * self.width)
+#            surface.blit(step_text, (x2 , y1-text_center[1]) )
             
             
 #            surface.blit(step_text, (self.x0 - text_center[0], y1-text_center[1]) )
             
         
 #        surface = pygame.transform.rotate(surface, math.degrees(self.roll))
-        rot_surface = pygame.transform.rotate(surface, math.degrees(self.roll))
-        rot_rect = rot_surface.get_rect()
-        rot_rect.center = self.screen.get_rect().center
+#        rot_surface = pygame.transform.rotate(surface, math.degrees(self.roll))
+        rot_surface = surface
+#        rot_rect = rot_surface.get_rect()
+#       rot_rect.center = self.screen.get_rect().center
         
-        self.screen.blit(rot_surface, rot_rect)
+#        self.screen.blit(rot_surface, rot_rect)
             
         
     def redraw_pitch_ladder(self):
@@ -234,7 +364,7 @@ class hud(threading.Thread):
         
         screen.fill((0, 0, 0))
         
-        self.redraw_pitch_ladder_rot()
+        self.redraw_pitch_ladder_direct()
         
         pygame.display.flip()
 
