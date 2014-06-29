@@ -28,6 +28,15 @@ def blit_alpha(target, source, location, opacity):
         temp.set_alpha(opacity)        
         target.blit(temp, location)
 
+#buffer is a surface that has had surface.convert() applied to it
+def blit_alpha_buffer(blit_buffer, target, source, location, opacity):
+        x = location[0]
+        y = location[1]
+        blit_buffer.blit(target, (-x, -y))
+        blit_buffer.blit(source, (0, 0))
+        blit_buffer.set_alpha(opacity)        
+        target.blit(blit_buffer, location)
+
 
 class hud(threading.Thread):
     def __init__(self,mpstate):
@@ -87,7 +96,9 @@ class hud(threading.Thread):
         self.screen = pygame.display.set_mode((self.width, self.height), pygame.NOFRAME | pygame.DOUBLEBUF, 32)
         # Beware - there be dragons -  | pygame.FULLSCREEN
         
-        self.ladder_text_bitmap_gen()
+        max_sprite_dim = self.ladder_text_sprite_gen()
+        
+        self.ladder_text_buffer = pygame.Surface((max_sprite_dim, max_sprite_dim)).convert()
          
         while( (not self._stop.isSet()) and (self.mpstate.status.exit == False) ):
             time.sleep(0.05);
@@ -98,17 +109,31 @@ class hud(threading.Thread):
 
         print("HUD thread end")
     
-    def ladder_text_bitmap_gen(self):
+    def ladder_text_sprite_gen(self):
         # Load the fonts
         ladderfont = pygame.font.SysFont(self.pitch_ladder_font, self.pitch_ladder_font_size, self.pitch_ladder_font_bold)
         
         steps = 120 / self.pitch_ladder_step
         self.fontmap = []
         
+        width = 0
+        height = 0
+        
+        # Render all required angle steps. Get the largest sized text sizes to create rotation buffer.
         for angle in xrange(-steps, steps):
             step_angle = angle * self.pitch_ladder_step
             step_str = "%01d" % step_angle
-            self.fontmap.append( (step_angle, ladderfont.render(step_str, 1, self.pitch_ladder_font_color)) )
+            text = ladderfont.render(step_str, 1, self.pitch_ladder_font_color)
+            text_rect = text.get_rect()
+            if(text_rect.width > width):
+                width = text_rect.width
+            if(text_rect.height > height):
+                height = text_rect.height
+            self.fontmap.append( (step_angle, text) )
+                
+        #maximum dimension when sprite rotated to 45deg
+        return int( math.sqrt( ((width*width)) + ((height*height))) + 2)
+
 
     def ladder_text_lookup(self, angle):
         for txt in self.fontmap:
@@ -190,7 +215,7 @@ class hud(threading.Thread):
             text = self.ladder_text_lookup(stepangle)
             rot_text = pygame.transform.rotate(text, math.degrees(self.roll) )
             text_rect = rot_text.get_rect()
-            text_center = text_rect.center
+#            text_center = text_rect.center
             
             # Draw right side line
             abs_bar_length = bar_length * self.width
@@ -201,11 +226,13 @@ class hud(threading.Thread):
             pygame.draw.line(surface, bar_color, (x1, y1), (x2, y2), bar_thickness)
 
             # Right side text
-            x1 = bar_centre_x + ( ((text_offset * self.width) - text_center[0]) * math.cos(self.roll))
-            y1 = bar_centre_y - ( ((text_offset * self.width) - text_center[0]) * math.sin(self.roll) )
-#            surface.blit(rot_text, (x1 , y1) )
-            blit_alpha(surface, rot_text, (x1, y1), bar_fade*255)
-            
+            x1 = bar_centre_x + ( ((text_offset * self.width) ) * math.cos(self.roll))
+            y1 = bar_centre_y - ( ((text_offset * self.width) ) * math.sin(self.roll) )
+            if(bar_fade < 1):
+                blit_alpha_buffer(self.ladder_text_buffer, surface, rot_text, (x1, y1), bar_fade*255)
+            else:
+                surface.blit(rot_text, (x1,y1))
+                
             #test circle at text position
             #pygame.draw.circle(surface, green, ( int(x1),int(y1) ), 10, 2)
 
@@ -222,8 +249,10 @@ class hud(threading.Thread):
             # Left side text
             x1 = bar_centre_x - (text_offset * self.width * math.cos(self.roll))
             y1 = bar_centre_y + (text_offset * self.width * math.sin(self.roll) )
-            #surface.blit(rot_text, (x1 , y1) )
- #           blit_alpha(surface, rot_text, (x1-text_center[0], y1-text_center[1]), bar_fade*255)
+            if(bar_fade < 1):
+                blit_alpha_buffer(self.ladder_text_buffer, surface, rot_text, (x1, y1), bar_fade*255)
+            else:
+                surface.blit(rot_text, (x1,y1))
 
 
             
