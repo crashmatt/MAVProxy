@@ -53,14 +53,14 @@ class hud(threading.Thread):
         
         #Pitch ladder parameters
         self.pitch_ladder_height = 0.8 # percent of total screen height that it covers
-        self.pitch_ladder_zero_bar_width =  0.3;
+        self.pitch_ladder_zero_bar_width =  0.164;
         self.pitch_ladder_zero_bar_thickness = 2;
-        self.pitch_ladder_bar_width = 0.25;
+        self.pitch_ladder_bar_width = 0.15;
         self.pitch_ladder_bar_thickness = 1;
-        self.pitch_ladder_bar_gap = 0.08;
+        self.pitch_ladder_bar_gap = 0.04;
         self.pitch_ladder_step = 10;    # degrees
         self.pitch_ladder_step_height = 0.2
-        self.pitch_ladder_text_xoffset = 0.025
+        self.pitch_ladder_text_xoffset = 0.01
         self.pitch_ladder_font_size = 15;
         self.pitch_ladder_font = "FreeMono"
         self.pitch_ladder_font_bold = True
@@ -72,7 +72,6 @@ class hud(threading.Thread):
          
         # gap between bar center and start of the bar
         self.bar_gap = (self.pitch_ladder_bar_gap * self.width * 0.5) #bar gap in abs units
-
         
         # attitude in radians
         self.roll = 0
@@ -164,7 +163,7 @@ class hud(threading.Thread):
         next_step_down_pos = next_step_down_delta * self.pitch_ladder_step_height / self.pitch_ladder_step   #relative
         
         # relative units
-        step_down_distance_to_center = degpitch * self.pitch_ladder_step_height / self.pitch_ladder_step
+#        step_down_distance_to_center = degpitch * self.pitch_ladder_step_height / self.pitch_ladder_step
         top_steps = int(self.pitch_ladder_height / (self.pitch_ladder_step_height * 2))
         
         
@@ -173,15 +172,15 @@ class hud(threading.Thread):
 
             # bar lengths in relative units
             if ((steps_down - step) == 0):
-                bar_length = ( (self.pitch_ladder_zero_bar_width - self.pitch_ladder_bar_gap) * 0.5)
+                bar_length = self.pitch_ladder_zero_bar_width - self.pitch_ladder_bar_gap
                 bar_thickness = self.pitch_ladder_zero_bar_thickness
-                text_offset = (self.pitch_ladder_zero_bar_width * 0.5) + self.pitch_ladder_text_xoffset
+                text_offset = self.pitch_ladder_zero_bar_width + self.pitch_ladder_text_xoffset
                 stepangle = 0
                 bar_color = self.pitch_ladder_zero_colour
             else:
-                bar_length = ( (self.pitch_ladder_bar_width - self.pitch_ladder_bar_gap) * 0.5)
+                bar_length = self.pitch_ladder_bar_width - self.pitch_ladder_bar_gap
                 bar_thickness = self.pitch_ladder_bar_thickness
-                text_offset = (self.pitch_ladder_bar_width * 0.5) + self.pitch_ladder_text_xoffset
+                text_offset = self.pitch_ladder_bar_width + self.pitch_ladder_text_xoffset
                 stepangle = (steps_down - step) * self.pitch_ladder_step
                 
                 if((steps_down - step) < 0):
@@ -190,15 +189,15 @@ class hud(threading.Thread):
                     bar_color = self.pitch_ladder_upper_colour
                  
             if(step_pos > self.pitch_ladder_fade_pos):
-                max = self.pitch_ladder_height * 0.5
-                min = self.pitch_ladder_fade_pos
-                bar_fade = (max - step_pos) / (max - min)
+                max_pos = self.pitch_ladder_height * 0.5
+                min_pos = self.pitch_ladder_fade_pos
+                bar_fade = (max_pos - step_pos) / (max_pos - min_pos)
                 if(bar_fade < 0):
                     bar_fade = 0
             elif(step_pos < -self.pitch_ladder_fade_pos):
-                max = -self.pitch_ladder_height * 0.5
-                min = -self.pitch_ladder_fade_pos
-                bar_fade = (max - step_pos) / (max - min)
+                max_pos = -self.pitch_ladder_height * 0.5
+                min_pos = -self.pitch_ladder_fade_pos
+                bar_fade = (max_pos - step_pos) / (max_pos - min_pos)
                 if(bar_fade < 0):
                     bar_fade = 0
             else:
@@ -215,7 +214,7 @@ class hud(threading.Thread):
             text = self.ladder_text_lookup(stepangle)
             rot_text = pygame.transform.rotate(text, math.degrees(self.roll) )
             text_rect = rot_text.get_rect()
-#            text_center = text_rect.center
+            text_center = text_rect.center
             
             # Draw right side line
             abs_bar_length = bar_length * self.width
@@ -226,8 +225,8 @@ class hud(threading.Thread):
             pygame.draw.line(surface, bar_color, (x1, y1), (x2, y2), bar_thickness)
 
             # Right side text
-            x1 = bar_centre_x + ( ((text_offset * self.width) ) * math.cos(self.roll))
-            y1 = bar_centre_y - ( ((text_offset * self.width) ) * math.sin(self.roll) )
+            x1 = bar_centre_x + ( (text_offset * self.width) * math.cos(self.roll)) - text_center[0]
+            y1 = bar_centre_y - ( (text_offset * self.width) * math.sin(self.roll) ) - text_center[1]
             if(bar_fade < 1):
                 blit_alpha_buffer(self.ladder_text_buffer, surface, rot_text, (x1, y1), bar_fade*255)
             else:
@@ -247,8 +246,8 @@ class hud(threading.Thread):
             pygame.draw.line(surface, bar_color, (x1, y1), (x2, y2), bar_thickness)
             
             # Left side text
-            x1 = bar_centre_x - (text_offset * self.width * math.cos(self.roll))
-            y1 = bar_centre_y + (text_offset * self.width * math.sin(self.roll) )
+            x1 = bar_centre_x - (text_offset * self.width * math.cos(self.roll)) - text_center[0]
+            y1 = bar_centre_y + (text_offset * self.width * math.sin(self.roll) ) - text_center[1]
             if(bar_fade < 1):
                 blit_alpha_buffer(self.ladder_text_buffer, surface, rot_text, (x1, y1), bar_fade*255)
             else:
