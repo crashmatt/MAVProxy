@@ -10,6 +10,7 @@ import time
 import threading, Queue
 import math
 import webcolors
+import blit_tools
 
 blue = (0,0,255)
 red = (255,0,0)
@@ -17,25 +18,6 @@ green = (0,255,0)
 purple = (150,0,150)
 white = (255,255,255)
 brown = webcolors.name_to_rgb("brown")
-
-
-def blit_alpha(target, source, location, opacity):
-        x = location[0]
-        y = location[1]
-        temp = pygame.Surface((source.get_width(), source.get_height())).convert()
-        temp.blit(target, (-x, -y))
-        temp.blit(source, (0, 0))
-        temp.set_alpha(opacity)        
-        target.blit(temp, location)
-
-#buffer is a surface that has had surface.convert() applied to it
-def blit_alpha_buffer(blit_buffer, target, source, location, opacity):
-        x = location[0]
-        y = location[1]
-        blit_buffer.blit(target, (-x, -y))
-        blit_buffer.blit(source, (0, 0))
-        blit_buffer.set_alpha(opacity)        
-        target.blit(blit_buffer, location)
 
 
 class hud(threading.Thread):
@@ -228,7 +210,7 @@ class hud(threading.Thread):
             x1 = bar_centre_x + ( (text_offset * self.width) * math.cos(self.roll)) - text_center[0]
             y1 = bar_centre_y - ( (text_offset * self.width) * math.sin(self.roll) ) - text_center[1]
             if(bar_fade < 1):
-                blit_alpha_buffer(self.ladder_text_buffer, surface, rot_text, (x1, y1), bar_fade*255)
+                blit_tools.blit_alpha_buffer(self.ladder_text_buffer, surface, rot_text, (x1, y1), bar_fade*255)
             else:
                 surface.blit(rot_text, (x1,y1))
                 
@@ -249,7 +231,7 @@ class hud(threading.Thread):
             x1 = bar_centre_x - (text_offset * self.width * math.cos(self.roll)) - text_center[0]
             y1 = bar_centre_y + (text_offset * self.width * math.sin(self.roll) ) - text_center[1]
             if(bar_fade < 1):
-                blit_alpha_buffer(self.ladder_text_buffer, surface, rot_text, (x1, y1), bar_fade*255)
+                blit_tools.blit_alpha_buffer(self.ladder_text_buffer, surface, rot_text, (x1, y1), bar_fade*255)
             else:
                 surface.blit(rot_text, (x1,y1))
 
@@ -270,3 +252,24 @@ class hud(threading.Thread):
             if event.type == pygame.KEYDOWN:
                 self._stop.set()
             
+
+#===============================================================================
+# 
+# def blit_alpha(target, source, location, opacity):
+#        x = location[0]
+#        y = location[1]
+#        temp = pygame.Surface((source.get_width(), source.get_height())).convert()
+#        temp.blit(target, (-x, -y))
+#        temp.blit(source, (0, 0))
+#        temp.set_alpha(opacity)        
+#        target.blit(temp, location)
+# 
+# #buffer is a surface that has had surface.convert() applied to it
+# def blit_alpha_buffer(blit_buffer, target, source, location, opacity):
+#        x = location[0]
+#        y = location[1]
+#        blit_buffer.blit(target, (-x, -y))
+#        blit_buffer.blit(source, (0, 0))
+#        blit_buffer.set_alpha(opacity)        
+#        target.blit(blit_buffer, location)
+#===============================================================================
