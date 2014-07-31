@@ -4,10 +4,19 @@
 
 """
 
-import mavutil, re, os, sys, threading, time
+import mavutil, re, os, sys, time, threading
+import math
+#import pdb
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib'))
-import mp_hud
+#from subprocess import Popen, PIPE, STDOUT
+from multiprocessing import Process, Queue
+#from threading import Thread
+
+#sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib'))
+#import mp_hud
+
+sys.path.insert(0, os.path.join('/','home','matt','pi', 'demos'))
+import HUD
 
 mpstate = None
 
@@ -19,29 +28,39 @@ class hud_manager(object):
         self.unload = threading.Event()
         self.unload.clear()
 
-        self.monitor_thread = threading.Thread(target=self.hud_app)
-        self.monitor_thread.daemon = True
-        self.monitor_thread.start()
-    
-    
+        self.update_queue = Queue(100)
+
+#        self.hud_thread = threading.Thread(target=self.hud_app)
+#        self.hud_thread.daemon = True
+#        self.hud_thread.start()
+
+        self.hud_process = Process(target=self.hud_app)
+        self.hud_process.daemon = False
+        self.hud_process.start()
+
+        
+    def set_variable(self, var_name, value):
+        try:
+            self.update_queue.put_nowait((var_name, value))
+        except:
+            print("Queue full")
+        
     def hud_app(self):
-        self.hud = mp_hud.hud(mpstate)
         print("hud initialised")
-        self.hud.start()
 
         self.mpstate.hud_initialised = True
                     
-        while ( (not mpstate.status.exit) and (not self.unload.is_set()) ):
-            time.sleep(1)
+        self.hud = HUD.HUD(master=False, update_queue=self.update_queue)
+        self.hud.run_hud()
+
+#        while ( (not mpstate.status.exit) and (not self.unload.is_set()) ):
+#            time.sleep(1)
         
-        self.hud.stop()
-        self.hud.join()
-        self.hud = None
+ 
         self.mpstate.hud_initialised = False
+        self.hud = None
         print("hud closed")  
     
-         
-
 
 def name():
     '''return module name'''
@@ -86,5 +105,28 @@ def unload():
 def mavlink_packet(msg):
     '''handle an incoming mavlink packet'''
     
- 
+    if(not msg):
+        return
+    if msg.get_type() == "GLOBAL_POSITION_INT":
+        vz = msg.vz   # vertical velocity in cm/s
+        vz = float(vz) * 0.6  #vz in meters/min
+        mpstate.hud_manager.set_variable("vertical_speed", vz)
+
+        #convert groundspeed to km/hr
+#        groundspeed = math.sqrt((msg.vx*msg.vx) + (msg.vy*msg.vy) + (msg.vz*msg.vz)) * 0.0036
+#        mpstate.hud_manager.set_variable("groundspeed", groundspeed)
+        
+        mpstate.hud_manager.set_variable("agl", msg.relative_alt)
+        
+        
+    elif msg.get_type() == "VFR_HUD":
+        mpstate.hud_manager.set_variable("heading", msg.heading)
+        
+        mpstate.hud_manager.set_variable("groundspeed", msg.groundspeed)
+        mpstate.hud_manager.set_variable("tas", msg.airspeed)
+
+    elif msg.get_type() == "ATTITUDE":
+        mpstate.hud_manager.set_variable("roll", math.degrees(msg.roll))
+        mpstate.hud_manager.set_variable("pitch", math.degrees(msg.pitch))
+        
             
