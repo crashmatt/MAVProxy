@@ -15,7 +15,7 @@ from multiprocessing import Process, Queue
 #sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib'))
 #import mp_hud
 
-sys.path.insert(0, os.path.join('/','home','matt','pi', 'demos'))
+sys.path.insert(0, os.path.join('..','..','..','HUD'))
 import HUD
 
 mpstate = None
