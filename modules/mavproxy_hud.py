@@ -44,6 +44,10 @@ class hud_manager(object):
             self.update_queue.put_nowait((var_name, value))
         except:
             print("Queue full")
+            
+    def hud_quit(self):
+        mpstate.hud_manager.set_variable("quit", True)
+        
         
     def hud_app(self):
         print("hud initialised")
@@ -100,7 +104,7 @@ def init(_mpstate):
 
 def unload():
     '''unload module'''
-    mpstate.hud_manager.unload.set()
+    mpstate.hud_manager.hud_quit()
         
 def mavlink_packet(msg):
     '''handle an incoming mavlink packet'''
