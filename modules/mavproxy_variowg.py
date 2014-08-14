@@ -108,8 +108,8 @@ def mavlink_packet(msg):
 
     if msg and msg.get_type() == "GLOBAL_POSITION_INT":
         try:
-            vz = msg.vz   # vertical velocity in cm/s
-            vz = int(-vz)
+            vz = msg.vz             # inverted vertical velocity in cm/s
+            vz = int(-vz) * 0.01    # vertical velocity in m/s 
         except:
             print("decode global vz message fail")
         try:

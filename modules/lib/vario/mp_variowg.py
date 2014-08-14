@@ -33,7 +33,8 @@ class wavegen(threading.Thread):
         return not self.isAlive()
 
     def setVariable(self, module, varName, value):
-        sendstr = '["{0}":"{1}":"{2}"]\n'.format(module, varName, value )
+#        sendstr = '["{0}":"{1}":"{2}"]\n'.format(module, varName, value )
+        sendstr = '{0}:{1}:{2}\n'.format(module, varName, value )
         try:
             self.txq.put(sendstr, True, 0.01)
         except:
@@ -84,6 +85,9 @@ class vario():
         
         self.rising_deadband   = 0.0
         self.falling_deadband   = 0.5
+        self.minRisingPulseFreq = 1.0
+        self.maxRisingPulseFreq = 10
+        self.risingPulseBand = 1.5
         self.maxRate    = 4.0
         self.minRate    = -4.0
         self.maxRisingFreq  = 2500.0
@@ -96,31 +100,45 @@ class vario():
     def __del__(self):
         self.soundGen.stop()
         
+        self.minRisingPulsePeriod = 1.0
+        self.maxRisingPulsePeriod = 0.1
+
     def setRate(self, rate):
         if(rate > self.rising_deadband):
-            if(rate < self.maxRate):
-                self.soundGen.setKey( ( (rate-self.rising_deadband) * (self.maxRisingFreq - self.minRisingFreq) / (self.maxRate - self.rising_deadband)) + self.minRisingKey)
-                self.soundGen.setPulsing(True)
+            if(rate < ( self.rising_deadband + self.risingPulseBand)):
+                fdiff = self.maxRisingPulseFreq - self.minRisingPulseFreq
+                pulsefreq = fdiff * (rate - self.rising_deadband) / self.risingPulseBand
+                pulsefreq += self.minRisingPulseFreq
+                pulseperiod = 1/pulsefreq
+                self.wgen.setVariable("modulator","period", pulseperiod)
+                val = "%5.2f" % self.minRisingFreq
+                self.wgen.setVariable("wavegen","frequency",val)               
+            elif(rate < self.maxRate):
+                bandstart = self.rising_deadband + self.risingPulseBand
+                freq = ( (rate-bandstart) * (self.maxRisingFreq - self.minRisingFreq) / (self.maxRate - bandstart)) + self.minRisingFreq
+                val = "%5.2f" % freq
+                self.wgen.setVariable("wavegen","frequency",val)
+                self.wgen.setVariable("modulator","pulsing","true")
             else:
-                self.soundGen.setKey(self.maxRisingKey)
-                self.soundGen.setPulsing(False)
-            self.soundGen.setAmplitude(self.volume)
+                val = "%5.2f" % self.maxRisingFreq
+                self.wgen.setVariable("wavegen","frequency",val)
+                self.wgen.setVariable("modulator","constant","true")
             
         elif(rate < -self.falling_deadband):
             if(rate < self.minRate):
-                self.soundGen.setKey(self.maxFallingKey)
-                self.soundGen.setPulsing(True)
-                self.soundGen.setAmplitude(self.volume)
+                val = "%5.2f" % self.maxFallingFreq
+                self.wgen.setVariable("wavegen","frequency", val)
+                self.wgen.setVariable("modulator","pulsing","true")
             else:
-                self.soundGen.setPulsing(False)
-                freq = rate+self.deadband
+                self.wgen.setVariable("modulator","constant","true")
+                freq = rate+self.falling_deadband
                 freq = freq / (self.minRate + self.falling_deadband)
-                freq = freq * (self.maxFallingFreq - self.minFallingFreq)
+                freq = freq * (self.minFallingFreq - self.maxFallingFreq)
                 freq = self.minFallingFreq - freq
-                self.soundGen.setKey( freq )
-                self.soundGen.setAmplitude(self.volume)
+                val = "%5.2f" % freq
+                self.wgen.setVariable("wavegen","frequency",val)
         else:
-            self.wgen.setVariable("wavegen", "amplitude", "0.0")
+            self.wgen.setVariable("modulator", "mute", "0.0")
     
 
 
