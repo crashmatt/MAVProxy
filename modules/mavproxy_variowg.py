@@ -1,6 +1,7 @@
 """
   MAVProxy vario module
-  Uses fluidsynth and soundfonts driving alsa
+  Connects mavproxy to a vario, generating sound according to climb rate
+  Starts a thread which uses the mp_variowg module to connect to an audio waveform generator.
 """
 
 import mavutil, re, os, sys, threading, time

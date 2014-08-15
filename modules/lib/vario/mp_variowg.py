@@ -1,3 +1,8 @@
+"""
+  variowg module.  Decides what sounds to make for a given climb rate.
+  Sends the sound demand to a wave generator connected through a named pipe
+"""
+
 import math
 import fluidsynth
 import time
@@ -6,6 +11,7 @@ import threading, Queue
 import sys,os
 
 import socket
+import json
 
 #from scipy import interpolate
 #from operator import itemgetter
@@ -14,13 +20,13 @@ import socket
 
 
 class wavegen(threading.Thread):
-    def __init__(self, mpstate, addr="localhost", port="14560"):
+    def __init__(self):     #, mpstate, addr="localhost", port="14560"
         threading.Thread.__init__(self)
         
-        self.port = port
-        self.addr = addr
+#        self.port = port
+#        self.addr = addr
         
-        self.mpstate = mpstate
+#        self.mpstate = mpstate
         self._stop = threading.Event()
         
         self.txq = Queue.Queue(20)
@@ -33,7 +39,14 @@ class wavegen(threading.Thread):
         return not self.isAlive()
 
     def setVariable(self, module, varName, value):
-#        sendstr = '["{0}":"{1}":"{2}"]\n'.format(module, varName, value )
+        """ Set a variable value in the wave generator.
+        Formats the text to send and adds it to a queue.
+        The queue add is done from any thread.
+        The actual send is performed in a the wavegen thread
+        
+        send string is
+        module:variable name:value\n
+        """
         sendstr = '{0}:{1}:{2}\n'.format(module, varName, value )
         try:
             self.txq.put(sendstr, True, 0.01)
@@ -44,49 +57,37 @@ class wavegen(threading.Thread):
         print("wavegen communication thread starting\n")
         self._stop.clear()
 
-        #=======================================================================
-        # try:
-        #     sock = socket.socket(socket.AF_INET, # Internet
-        #                          socket.SOCK_DGRAM) # UDP
-        # except:
-        #     printf("wavegen failed to open socket")
-        #     return            
-        # fd
-        # while( (not self._stop.isSet()) and (self.mpstate.status.exit == False) ):
-        #     try:
-        #         txmsg = self.txq.get(True, 0.01)
-        #         sock.sendto( txmsg, (self.addr, self.port) )
-        #     except:
-        #         pass
-        #=======================================================================
-
         with open('/home/matt/workspace/wavegen/wavegen.fifo', 'a') as fifo:
-            while( (not self._stop.isSet()) and (self.mpstate.status.exit == False) ):
+            while( not self._stop.isSet() ):    # and (self.mpstate.status.exit == False)
                 try:
                     txmsg = self.txq.get(True, 0.5)
                     fifo.write(txmsg)
                     fifo.flush()
                 except:
                     pass
-        
-        print("sound generator thread end\n")
+                        
+        print("sound generator communication thread end\n")
 
 
 
 def enum(*sequential, **named):
+    """ not sure what this is for, legacy and hanging around"""
     enums = dict(zip(sequential, range(len(sequential))), **named)
     return type('Enum', (), enums)
 
 
 class vario():
     def __init__(self, mpstate):
-        self.wgen = wavegen(mpstate)
+        self.serialise_attribs = ["rising_deadband", "falling_deadband", "minRisingPulseFreq", "maxRisingPulseFreq", "risingPulseBand", "maxRate",
+                   "minRate", "maxRisingFreq", "minRisingFreq", "maxFallingFreq", "minFallingFreq", "volume"]        
+
+        self.wgen = wavegen()
         self.wgen.start()
         
         self.rising_deadband   = 0.0
         self.falling_deadband   = 0.5
         self.minRisingPulseFreq = 1.0
-        self.maxRisingPulseFreq = 10
+        self.maxRisingPulseFreq = 10.0
         self.risingPulseBand = 2.5
         self.maxRate    = 6.0
         self.minRate    = -4.0
@@ -98,6 +99,9 @@ class vario():
         self.volume = 0.5;
         
         self.filtered = 0;
+        
+        self.load()
+        self.save()
 
     def __del__(self):
         self.soundGen.stop()
@@ -151,6 +155,42 @@ class vario():
         else:
             self.wgen.setVariable("modulator", "mute", "0.0")
     
+    def to_dict(self):
+        d = dict({})
+        for a in self.serialise_attribs:
+            try:
+                d[a] = getattr(self, a)
+            except:
+                pass
+        return d
 
+    def from_dict(self, attr_dict):
+        for key in attr_dict:
+            try:
+                setattr(self, key, float(attr_dict[key]))
+            except:
+                pass
+
+    def to_json(self):
+        return json.dumps(self.to_dict())
+    
+    def save(self):
+        print("saving vario to configuration")
+        conf = file("varioconf.cfg","w")
+        conf.write(self.to_json())
+        conf.close()
+
+    def from_json(self, filestr):
+        self.from_dict(json.loads(filestr)) 
+
+    def load(self):
+        print("loading vario from configuration")
+        try:
+            conf = file("varioconf.cfg","r")
+        except:
+            return
+        
+        self.from_json(conf.read())
+        conf.close()
 
            
