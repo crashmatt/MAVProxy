@@ -23,9 +23,19 @@ class vario_manager(object):
         self.app_thread.start()
         
         self.timeout_time = 0;
+        self.vz_update_frame = 0;
+        self.vz_update_period = time.time()
+        self.vz_update_time = 0
+        
+        self.filtered = 0;
         
     def update_timeout(self):
         self.timeout_time = time.time() + 1.0;
+        self.vz_update_frame += 1
+        if(self.vz_update_frame >= 10):
+            self.vz_update_period = (time.time() - self.vz_update_time) * 0.1
+            self.vz_update_time = time.time()
+            self.vz_update_frame = 0;
             
     def vario_app(self):
         self.vario = mp_variowg.vario(mpstate)

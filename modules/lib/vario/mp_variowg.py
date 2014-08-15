@@ -87,23 +87,32 @@ class vario():
         self.falling_deadband   = 0.5
         self.minRisingPulseFreq = 1.0
         self.maxRisingPulseFreq = 10
-        self.risingPulseBand = 1.5
-        self.maxRate    = 4.0
+        self.risingPulseBand = 2.5
+        self.maxRate    = 6.0
         self.minRate    = -4.0
         self.maxRisingFreq  = 2500.0
-        self.minRisingFreq  = 1000.0
+        self.minRisingFreq  = 800.0
         self.maxFallingFreq = 400.0
         self.minFallingFreq = 650.0
         
         self.volume = 0.5;
+        
+        self.filtered = 0;
 
     def __del__(self):
         self.soundGen.stop()
         
         self.minRisingPulsePeriod = 1.0
         self.maxRisingPulsePeriod = 0.1
+        
+    def filter(self, input):
+        self.filtered += input
+        self.filtered *= 0.5
+        return self.filtered
 
     def setRate(self, rate):
+        rate = self.filter(rate)
+        
         if(rate > self.rising_deadband):
             if(rate < ( self.rising_deadband + self.risingPulseBand)):
                 fdiff = self.maxRisingPulseFreq - self.minRisingPulseFreq
@@ -113,6 +122,7 @@ class vario():
                 self.wgen.setVariable("modulator","period", pulseperiod)
                 val = "%5.2f" % self.minRisingFreq
                 self.wgen.setVariable("wavegen","frequency",val)               
+                self.wgen.setVariable("modulator","pulsing","true")
             elif(rate < self.maxRate):
                 bandstart = self.rising_deadband + self.risingPulseBand
                 freq = ( (rate-bandstart) * (self.maxRisingFreq - self.minRisingFreq) / (self.maxRate - bandstart)) + self.minRisingFreq
@@ -128,6 +138,7 @@ class vario():
             if(rate < self.minRate):
                 val = "%5.2f" % self.maxFallingFreq
                 self.wgen.setVariable("wavegen","frequency", val)
+                self.wgen.setVariable("modulator","period", "0.3")
                 self.wgen.setVariable("modulator","pulsing","true")
             else:
                 self.wgen.setVariable("modulator","constant","true")
