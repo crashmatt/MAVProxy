@@ -56,8 +56,11 @@ class wavegen(threading.Thread):
     def run(self):
         print("wavegen communication thread starting\n")
         self._stop.clear()
+        
+        home = os.getenv("HOME");
+        fifo_path = os.path.join(home, "wavegen.fifo");
 
-        with open('/home/matt/workspace/wavegen/wavegen.fifo', 'a') as fifo:
+        with open(fifo_path, 'a') as fifo:
             while( not self._stop.isSet() ):    # and (self.mpstate.status.exit == False)
                 try:
                     txmsg = self.txq.get(True, 0.5)
