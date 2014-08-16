@@ -20,15 +20,10 @@ import json
 
 
 class wavegen(threading.Thread):
-    def __init__(self):     #, mpstate, addr="localhost", port="14560"
+    def __init__(self):
         threading.Thread.__init__(self)
         
-#        self.port = port
-#        self.addr = addr
-        
-#        self.mpstate = mpstate
         self._stop = threading.Event()
-        
         self.txq = Queue.Queue(20)
     
     def stop(self):
@@ -80,7 +75,7 @@ def enum(*sequential, **named):
 
 
 class vario():
-    def __init__(self, mpstate):
+    def __init__(self, name = ""):
         self.serialise_attribs = ["rising_deadband", "falling_deadband", "minRisingPulseFreq", "maxRisingPulseFreq", "risingPulseBand", "maxRate",
                    "minRate", "maxRisingFreq", "minRisingFreq", "maxFallingFreq", "minFallingFreq", "volume"]        
 
@@ -103,8 +98,20 @@ class vario():
         
         self.filtered = 0;
         
+        dirname = os.path.dirname(os.path.realpath(__file__))
+
+        if(name == ""):
+            config_folder = os.path.realpath(os.path.join(dirname, "..", "..", ".."))
+        else:
+            config_folder = os.path.realpath(os.path.join(dirname, "..", "..", "..", name))
+        self.config_path = os.path.join(config_folder, "variowg.cfg")
+        
+        #Load configuration
         self.load()
+        
+        # Save configuration to update with changes to attributes
         self.save()
+        
 
     def __del__(self):
         self.soundGen.stop()
@@ -179,7 +186,7 @@ class vario():
     
     def save(self):
         print("saving vario to configuration")
-        conf = file("varioconf.cfg","w")
+        conf = file(self.config_path,"w")
         conf.write(self.to_json())
         conf.close()
 
@@ -189,11 +196,12 @@ class vario():
     def load(self):
         print("loading vario from configuration")
         try:
-            conf = file("varioconf.cfg","r")
+            conf = file(self.config_path,"r")
         except:
-            return
+            return False
         
         self.from_json(conf.read())
         conf.close()
+        return True
 
            

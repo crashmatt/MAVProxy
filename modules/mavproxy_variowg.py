@@ -39,7 +39,21 @@ class vario_manager(object):
             self.vz_update_frame = 0;
             
     def vario_app(self):
-        self.vario = mp_variowg.vario(mpstate)
+        
+        # Find aircraft name argument from mavproxy options
+        args = sys.argv[1:]
+        self.aircraft = filter(lambda x: '--aircraft' in x,args)
+        if(len(self.aircraft) < 1):
+            aircraft = ""
+        else:
+            self.aircraft = self.aircraft[0]
+            splt = self.aircraft.split("=")
+            if(len(splt) == 2):
+                aircraft = splt[1]
+            else:
+                aircraft = ""
+
+        self.vario = mp_variowg.vario(name=aircraft)
                 
         mpstate.vario_initialised = True
         print("vario initialised")        
