@@ -68,8 +68,8 @@ class mixer_document( ):
             
         self.aircraftName = aircraftName
             
-        self.data_path = os.path.join(self.application_path, "..", "..", "data", "mixer");
-        self.settings_path = os.path.join(self.application_path, "..", "..", "..", aircraftName);
+        self.data_path = os.path.abspath(os.path.join(self.application_path, "..", "..", "data", "mixer"));
+        self.settings_path = os.path.abspath(os.path.join(self.application_path, "..", "..", "..", aircraftName));
                 
         self.function_blocks_path = os.path.join(self.data_path, "FunctionBlocks.xml")
         
