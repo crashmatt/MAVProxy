@@ -4,7 +4,6 @@
 """
 
 import math
-import fluidsynth
 import time
 
 import threading, Queue
