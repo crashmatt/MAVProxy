@@ -1736,7 +1736,8 @@ if __name__ == '__main__':
     if opts.speech:
         # start the speech-dispatcher early, so it doesn't inherit any ports from
         # modules/mavutil
-        say('Startup')
+        mpstate.settings.speech = 1
+        say('Mavproxy Startup')
 
     if not opts.master:
         serial_list = mavutil.auto_detect_serial(preferred_list=['*FTDI*',"*Arduino_Mega_2560*", "*3D_Robotics*", "*USB_to_UART*"])
