@@ -63,6 +63,9 @@ class vario_manager(object):
             if(time.time() > self.timeout_time):
                 self.vario.setRate(0)
             
+        self.vario.setRate(0)
+        time.sleep(1)
+        
         mpstate.vario_initialised = False
         self.vario.stop()
         self.vario.join()
