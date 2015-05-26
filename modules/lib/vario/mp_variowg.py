@@ -110,7 +110,14 @@ class vario():
         
         # Save configuration to update with changes to attributes
         self.save()
+    
         
+    def stop(self):
+        print("sound generator thread request stop")
+        self.wgen.stop(
+
+    def stopped(self):
+        return self.wgen.stopped()
 
     def __del__(self):
         self.soundGen.stop()
