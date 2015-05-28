@@ -68,8 +68,8 @@ class vario_manager(object):
         
         mpstate.vario_initialised = False
         self.vario.stop()
-        self.vario.join()
-        self.vario = None
+#        self.vario.join()
+#        self.vario = None
         print("vario closed")        
 
         
@@ -82,10 +82,10 @@ def description():
     return "variometer"
 
 def cmd_vario(args):
-    '''vario command'''
+    '''variowg command'''
     if(mpstate.vario_initialised == False):
         return
-    usage = "vario param value"
+    usage = "variowg param value"
     if(len(args) < 1):
          return
     if(args(0) == "volume"):
