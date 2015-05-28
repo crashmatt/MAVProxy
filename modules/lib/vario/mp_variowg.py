@@ -115,6 +115,7 @@ class vario():
     def stop(self):
         print("sound generator thread request stop")
         self.wgen.stop()
+        self.wgen.join(2)
 
     def stopped(self):
         return self.wgen.stopped()
