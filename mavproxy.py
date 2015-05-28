@@ -1645,12 +1645,15 @@ def input_loop():
     while True:
         while mpstate.rl.line is not None:
             time.sleep(0.01)
+            if mpstate.status.exit == 1:
+                sys.exit(1)       
         try:
             line = raw_input(mpstate.rl.prompt)
         except EOFError:
             mpstate.status.exit = True
             sys.exit(1)
         mpstate.rl.line = line
+
 
 
 def run_script(scriptfile):
@@ -1866,3 +1869,6 @@ Auto-detected serial ports are:
         print("exiting")
         mpstate.status.exit = True
         sys.exit(1)
+    except SystemExit:
+        mpstate.status.exit = True
+        
