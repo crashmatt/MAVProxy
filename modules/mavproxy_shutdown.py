@@ -37,5 +37,4 @@ def cmd_shutdown(args):
          return
     if(args[0] == "now"):
         mpstate.status.exit = True
-#        sys.exit(1)
         
