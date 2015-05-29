@@ -116,6 +116,8 @@ class mixer_gui_thread(threading.Thread):
         print("mixer gui thread end")
         self.mpstate.mixer_initialised = False
         
+    def stop(self):
+        self.mixer_app.stop();
 
 def init(_mpstate):
     '''initialise module'''
@@ -133,6 +135,7 @@ def unload():
     mpstate.mixer_initialised = False
     mpstate.mixer.stop()
     mpstate.mixer = None
+        
         
 def mavlink_packet(msg):
     '''handle an incoming mavlink packet'''
