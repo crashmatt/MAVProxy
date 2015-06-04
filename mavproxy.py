@@ -191,7 +191,9 @@ class MPState(object):
               ('rc2mul', int, 1),
               ('rc4mul', int, 1),
               ('shownoise', int, 1),
-              ('basealt', int, 0)]
+              ('basealt', int, 0),
+              ('no_rate_update', bool, False),
+              ('simple_speak', bool, False)]
             )
         self.status = MPStatus()
 
@@ -1108,8 +1110,11 @@ def report_altitude(altitude):
         math.fabs(mpstate.status.altitude - mpstate.status.last_altitude_announce) >= int(mpstate.settings.altreadout)):
         mpstate.status.last_altitude_announce = mpstate.status.altitude
         rounded_alt = int(mpstate.settings.altreadout) * ((5+int(mpstate.status.altitude)) / int(mpstate.settings.altreadout))
-        say("height %u" % rounded_alt, priority='notification')
-
+        if(not mpstate.settings.simple_speak):
+            say("height %u" % rounded_alt, priority='notification')
+        else:
+            say("%u" % rounded_alt, priority='notification')
+            
 
 def master_callback(m, master):
     '''process mavlink message m on master, sending any messages to recipients'''
@@ -1523,7 +1528,8 @@ def periodic_tasks():
     if heartbeat_check_period.trigger():
         check_link_status()
 
-    set_stream_rates()
+    if(not mpstate.settings.no_rate_update):
+        set_stream_rates()
 
     if param_period.trigger():
         if len(mpstate.mav_param_set) == 0:
@@ -1577,7 +1583,9 @@ def main_loop():
             if len(mpstate.mav_param) < 10 or not mpstate.continue_mode:
                 mpstate.mav_param_set = set()
                 master.param_fetch_all()
-        set_stream_rates()
+        
+        if(not mpstate.settings.no_rate_update):
+            set_stream_rates()
 
     while True:
         if mpstate is None or mpstate.status.exit:
@@ -1708,6 +1716,10 @@ if __name__ == '__main__':
                       action='store_true', default=False)
     parser.add_option("--speech", dest="speech", help="use text to speach",
                       action='store_true', default=False)
+    parser.add_option("--simple_speak", dest="simple_speak", help="use simple speach patterns",
+                      action='store_true', default=False)
+    parser.add_option("--no_rate_update", dest="no_rate_update", help="block mavlink rate updates",
+                      action='store_true', default=False)
     parser.add_option("--num-cells", dest="num_cells", help="number of LiPo battery cells",
                       type='int', default=0)
     parser.add_option("--aircraft", dest="aircraft", help="aircraft name", default=None)
@@ -1811,8 +1823,11 @@ Auto-detected serial ports are:
 
     mpstate.settings.numcells = opts.num_cells
     mpstate.settings.speech = opts.speech
+    mpstate.settings.simple_speak = opts.simple_speak
     mpstate.settings.streamrate = opts.streamrate
     mpstate.settings.streamrate2 = opts.streamrate
+    
+    mpstate.settings.no_rate_update = opts.no_rate_update
 
     msg_period = mavutil.periodic_event(1.0/15)
     param_period = mavutil.periodic_event(1)
