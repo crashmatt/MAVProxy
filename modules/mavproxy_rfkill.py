@@ -1,15 +1,10 @@
 #!/usr/bin/env python
 '''rfkill module
-
-Using fork of python-rfkill library by Evgeni Golov in modules/lib:
-original work here: https://github.com/evgeni/python-rfkill
   
 '''
 
 import sys, threading, os, dbus
 
-#sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib', 'python-rfkill'))
-#import RFKillSwitch from rfkill
 
 mpstate = None
 
