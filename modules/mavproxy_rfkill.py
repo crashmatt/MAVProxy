@@ -9,7 +9,8 @@ import sys, threading, os, dbus
 mpstate = None
 
 def device_list():
-    os.remove("/tmp/rfkill_list")
+    if(os.path.exists("/tmp/rfkill_list")):
+        os.remove("/tmp/rfkill_list")
     os.system("rfkill list >> /tmp/rfkill_list")
     listfile = open("/tmp/rfkill_list")
     mpstate.rfkill_devices = []
