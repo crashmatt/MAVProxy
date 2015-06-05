@@ -8,22 +8,38 @@ import sys, threading, os, dbus
 
 mpstate = None
 
+def device_list():
+    os.remove("/tmp/rfkill_list")
+    os.system("rfkill list >> /tmp/rfkill_list")
+    listfile = open("/tmp/rfkill_list")
+    mpstate.rfkill_devices = []
+    for line in listfile.readlines():
+        parts = line.split(":")
+        if(len(parts) == 3):
+            parts[2] = parts[2].strip("\n")
+            mpstate.rfkill_devices.append(parts)
+            
+def rfkill_set_all(block=True):
+    for devtype in mpstate.rfkill_list:
+        rfkill_set(devtype, block)    
+
+def rfkill_set(devtype, block=True):
+    for device in mpstate.rfkill_devices:
+        if(devtype in device[1]):
+            if(block):
+                cmd = "rfkill block " + device[0]
+            else:
+                cmd = "rfkill unblock " + device[0]
+            os.system(cmd)
 
 def idle_task():
     if(getattr(mpstate, "rfkill_gokill", None ) is not None):
         if(mpstate.rfkill_gokill.is_set()):
-            for dev in mpstate.rfkill_list:
-                killcmd = "rfkill block " + dev
-                os.system(killcmd)
             mpstate.rfkill_gokill.clear()
+            rfkill_set_all(block=True)
             
 def unload():
-    if(getattr(mpstate, "rfkill_list", None ) is not None):
-        for dev in mpstate.rfkill_list:
-            killcmd = "rfkill unblock " + dev
-            os.system(killcmd)
-        mpstate.rfkill_list = []
-    
+    rfkill_set_all(block=False)
 
             
 def name():
@@ -45,12 +61,15 @@ def init(_mpstate):
     global mpstate
     mpstate = _mpstate
     mpstate.command_map['rfkill'] = (cmd_rfkill, "rfkill commands")
-    mpstate.rfkill_list = ['1']
+    mpstate.rfkill_list = ["phy0"]
     mpstate.rfkill = None
     mpstate.rfkill_active = threading.Event()
     mpstate.rfkill_gokill = threading.Event()
     mpstate.rfkill_active.clear()
     mpstate.rfkill_gokill.clear()
+    
+    device_list();
+    print mpstate.rfkill_devices 
 
 def cmd_rfkill(args):
     '''rfkill command'''
